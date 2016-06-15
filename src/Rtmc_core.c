@@ -9,9 +9,10 @@ void run_RTMC(int mode)
 	struct Photon phot;
 	int i;
 	FILE *fp;
+	time_t t;
 
-	//Initialising mtwist seed//
-	mt_seed();
+	//Initialising random seed//
+	srand((unsigned) time(&t));
 
 	//Initialising dust grid//
 	init_grid(dustGrid, mode);
@@ -110,8 +111,6 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
  	for (i = 0; i < SIZE_OF_GRID; i++)
 		A_GRID[0][0][i] = 0.0;
 
-	mt_seed();
-	
 	//Setting A into a array of randomized values between [0,1]
 	for (i = 0; i < SIZE_OF_GRID; i++)
 	{
@@ -119,7 +118,7 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 		{
 			for (k = 0; k < SIZE_OF_GRID; k++)
 			{	
-				F_GRID[i][j][k] = mt_drand();
+				F_GRID[i][j][k] = randFloat();
 			}
 		}
 	}
@@ -287,7 +286,7 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 
 	while(OutOfSystem == 0)
 	{
-		tau0 = -log(mt_drand());		
+		tau0 = -log(randFloat());		
 		while (tau0 > 0)
 		{
 			dist = distanceToNextCell(phot);
@@ -342,7 +341,7 @@ void init_phot(struct Photon *phot)
 	}
 	else
 	{
-		(*phot).pos[0] = PHOTON_START_X; (*phot).pos[1] = mt_drand()*32; (*phot).pos[2] = mt_drand()*32; 
+		(*phot).pos[0] = PHOTON_START_X; (*phot).pos[1] = randFloat()*32; (*phot).pos[2] = randFloat()*32; 
 	}
 
 	(*phot).dir[0] = 0; (*phot).dir[1] = 0;
@@ -352,8 +351,8 @@ void init_phot(struct Photon *phot)
 //Scattering//
 void scatter_photon(struct Photon *phot)
 {
-	(*phot).dir[0] = 2 * PI * mt_drand(); 
-	(*phot).dir[1] = 2 *  mt_drand() - 1; 
+	(*phot).dir[0] = 2 * PI * randFloat(); 
+	(*phot).dir[1] = 2 *  randFloat() - 1; 
 	(*phot).intensity *= DUST_ALBEDO;
 }
 
@@ -441,4 +440,9 @@ float cellDensity(struct Photon phot, float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID]
 		return -9.0;
 	else
 		return dustGrid[i][j][k]; 
+}
+
+float randFloat()
+{
+	return ((float) (rand() % 3277)) / 3277.0;
 }

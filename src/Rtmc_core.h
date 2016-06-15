@@ -6,7 +6,7 @@
 #include <math.h>
 #include <complex.h>
 #include <fftw3.h>
-#include "/mtwist-1.5/mtwist.h"
+#include <stdlib.h>
 
 //Dust grid variables//
 #define SIZE_OF_GRID 32
@@ -69,5 +69,6 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 float distanceBetween(float vec1[3], float vec2[3]);
 float distanceToNextCell(struct Photon phot);
 int isRayInTheSameCell(struct Photon phot, float rayPos[3]);
+float randFloat();
 
 #endif
