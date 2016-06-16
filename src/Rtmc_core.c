@@ -18,7 +18,11 @@ void run_RTMC(int mode)
 	init_grid(dustGrid, mode);
 
 	//Opening output file 
-	fp = fopen("../run/outputFile", "w+");
+	if (mode == 0)
+		fp = fopen("../run/uniform-outputFile", "w+");
+	else 
+		fp = fopen("../run/non-uniform-outputFile", "w+");
+	
 	fprintf(fp, "%d\n", PHOTON_PACKS);
 
 	//Running the simulation//
@@ -141,6 +145,9 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 			for (k = 0; k < SIZE_OF_GRID; k++)
 			{
 				dustGrid[i][j][k] = DUST_RHO + crealf((complex) in[i][j][k]);
+		
+				if (dustGrid[i][j][k] < 0)
+					dustGrid[i][j][k] = 0.001;
 			}
 		}
 	} 	
@@ -281,7 +288,7 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 {
 	struct Photon phot;
 	float dist, tau0, cellDen;
-	int OutOfSystem = 0;
+	int OutOfSystem = 0, test = 0;
 	init_phot(&phot);
 
 	while(OutOfSystem == 0)
@@ -294,6 +301,11 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 			
 			if (cellDen < 0)
 			{
+				if (test == 100000)
+				{
+					
+					printf("%f - %f\n\n",cellDen, dist);
+				}
 				OutOfSystem = 1;
 				break;
 			}
@@ -315,10 +327,18 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 				tau0 -= dist * DUST_KSCA * cellDen;
 			}
 		}
-		
+
+		if (test > 100000 && test < 100004)
+		{
+			print_photon(phot);
+			printf("tau: %f\n", tau0);
+		}
+
 		OutOfSystem = isPhotonOutOfSystem(phot);
 		if (OutOfSystem == 0) 
 			scatter_photon(&phot);
+		
+		test++;
 	}
 
 	return phot;
@@ -422,11 +442,11 @@ int isRayInTheSameCell(struct Photon phot, float rayPos[3])
 //Function for checking if the photon is out of the system
 int isPhotonOutOfSystem(struct Photon phot)
 {
-	if (phot.pos[0] < 0.0 || phot.pos[0] > 32.0)
+	if (phot.pos[0] < 0.0 || phot.pos[0] >= 32.0)
 		return 1;
-	else if (phot.pos[1] < 0.0 || phot.pos[1] > 32.0)
+	else if (phot.pos[1] < 0.0 || phot.pos[1] >= 32.0)
 		return 1;
-	else if (phot.pos[2] < 0.0 || phot.pos[2] > 32.0)
+	else if (phot.pos[2] < 0.0 || phot.pos[2] >= 32.0)
 		return 1;
 	else
 		return 0;
@@ -435,7 +455,9 @@ int isPhotonOutOfSystem(struct Photon phot)
 //Function for checking the cell density
 float cellDensity(struct Photon phot, float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 {
-	int i = (int) floor(phot.pos[0]), j = (int) floor(phot.pos[1]), k = (int) floor(phot.pos[2]);
+	int i, j, k;
+	i = (int) floor(phot.pos[0]); j = (int) floor(phot.pos[1]); k = (int) floor(phot.pos[2]);
+
 	if (i < 0 || i > 31 || j < 0 || j > 31 || k < 0 || k > 31)
 		return -9.0;
 	else

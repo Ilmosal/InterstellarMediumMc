@@ -1,0 +1,31 @@
+-Input File for InterstellarMediumMc-
+
+-Dust Parameters-
+Size of Grid
+32
+
+Dust Rho
+1.0
+
+Dust KSCA
+1.0
+
+Dust Albedo
+0.99
+
+Dust Grid Beta value for non-uniform medium
+-2
+
+-Simulation Parameters-
+Photon packs
+100000
+
+-Photon Variables-
+Photon starting x-coordinate
+0.0
+
+Photon Starting y-coordinate
+16.5
+
+Photon Starting z-coordinate
+16.5
