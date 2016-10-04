@@ -57,15 +57,9 @@ void uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 {
 	int i, j, k;
 	for (i = 0; i < SIZE_OF_GRID; i++)
-	{
 		for (j = 0; j < SIZE_OF_GRID; j++)
-		{
 			for (k = 0; k < SIZE_OF_GRID; k++)
-			{
 				dustGrid[i][j][k] = DUST_RHO;
-			}
-		}
-	}
 }
 
 //Function for creating a non-uniform grid//
@@ -78,6 +72,7 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 		R_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
 		A_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
 		F_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
+	float sum, A;
 
 	fftw_complex in[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
 		    out[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
@@ -138,19 +133,28 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 
 	fftw_execute(p);
 
+	//Getting a factor A for normalization purposes
+	sum = 0;
 	for (i = 0; i < SIZE_OF_GRID; i++)
 	{
 		for (j = 0; j < SIZE_OF_GRID; j++)
 		{
 			for (k = 0; k < SIZE_OF_GRID; k++)
 			{
-				dustGrid[i][j][k] = DUST_RHO + crealf((complex) in[i][j][k]);
-		
-				if (dustGrid[i][j][k] < 0)
-					dustGrid[i][j][k] = 0.001;
+				sum += fabs(crealf((complex) in[i][j][k]));	
 			}
 		}
-	} 	
+	}
+
+	A = pow(SIZE_OF_GRID, 3) * DUST_RHO / sum;
+
+	printf("%f - %f \n", A, sum);
+
+	//Building the dust Grid
+	for (i = 0; i < SIZE_OF_GRID; i++)
+		for (j = 0; j < SIZE_OF_GRID; j++)
+			for (k = 0; k < SIZE_OF_GRID; k++)
+				dustGrid[i][j][k] = A * fabs(crealf((complex) in[i][j][k])); 
 
 	fftw_destroy_plan(p);
 	fftw_cleanup();

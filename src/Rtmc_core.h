@@ -7,10 +7,10 @@
 #include <complex.h>
 #include <fftw3.h>
 #include <stdlib.h>
-
+#include <time.h>
 //Dust grid variables//
 #define SIZE_OF_GRID 32
-#define DUST_RHO 0.2
+#define DUST_RHO 0.6
 #define DUST_KSCA 1.0
 #define DUST_ALBEDO 0.99
 #define DUST_GRID_BETA -2
