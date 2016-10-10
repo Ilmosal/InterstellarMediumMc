@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import pylab
 
 try:
 	filename = sys.argv[1]
@@ -53,6 +54,7 @@ plt.hist(phi, 100, weights = intensity)
 plt.title("Angular Distribution of Scattered Photons from a Homogenous Medium")
 plt.xlabel("Phi")
 plt.ylabel("Amount of photons")
+pylab.ylim([0,14000]);
 
 plt.subplot(222)
 plt.hist(theta, 100, weights = intensity)
@@ -65,7 +67,7 @@ plt.hist(phi2, 100, weights = intensity2)
 plt.title("Angular Distribution of Scattered Photons from a Non-Homogenous Medium")
 plt.xlabel("Phi")
 plt.ylabel("Amount of photons")
-
+pylab.ylim([0,14000]);
 
 plt.subplot(224)
 plt.hist(theta2, 100, weights = intensity2)

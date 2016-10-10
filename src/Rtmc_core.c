@@ -4,8 +4,7 @@
 void run_RTMC(int mode)
 {
 	//Declaring necessary variables//
-	float results[PHOTON_PACKS][3], dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
-//	float results2[100][3]; Alternative way to store the results
+	float results[SIZE_OF_GRID][SIZE_OF_GRID], dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
 	struct Photon phot;
 	int i;
 	FILE *fp;
@@ -20,36 +19,53 @@ void run_RTMC(int mode)
 	//Opening output file 
 	if (mode == 0)
 		fp = fopen("../run/uniform-outputFile", "w+");
-	else 
+	else if (mode == 1)
 		fp = fopen("../run/non-uniform-outputFile", "w+");
-	
+	else if (mode == 2)
+		fp = fopen("../run/uniform-viewFile", "w+");	
+	else if (mode == 3)
+		fp = fopen(".../run/non-uniform-viewFile", "w+");
+
 	fprintf(fp, "%d\n", PHOTON_PACKS);
 
+	
 	//Running the simulation//
-	for (i = 0; i < PHOTON_PACKS; i++)
-	{ 
-		if (i % (PHOTON_PACKS / 20) == 0)
-			printf("Progress: %d %c \n", ((i*100)+100)/PHOTON_PACKS, '%');	
-
-		//Running the route for one photon
-		phot = photon_run(dustGrid);
+	
+	if (mode == 0 || mode== 1)
+	{
+		for (i = 0; i < PHOTON_PACKS; i++)
+		{ 
+			if (i % (PHOTON_PACKS / 20) == 0)
+				printf("Progress: %d %c \n", ((i*100)+100)/PHOTON_PACKS, '%');	
+	
+			//Running the route for one photon
+			phot = photon_run(dustGrid);
 		
-		//printing the directional information of the photon to an output file
-		fprintf(fp, "%f\n%f\n%f\n", phot.dir[0] / PI, phot.dir[1], phot.intensity);
-	}
+			//printing the directional information of the photon to an output file
+			fprintf(fp, "%f\n%f\n%f\n", phot.dir[0] / PI, phot.dir[1], phot.intensity);	
+		}
+	} else if (mode == 2 || mode == 3)
+	{
+		for (i = 0; i < PHOTON_PACKS; i++)
+		{ 
+			if (i % (PHOTON_PACKS / 20) == 0)
+				printf("Progress: %d %c \n", ((i*100)+100)/PHOTON_PACKS, '%');	
+	
+			//Running the route for one photon
+			phot = photon_run(dustGrid);
+		
+			//printing the directional information of the photon to an viewfile
+		}	
+	}	
 }
 
 //Grid initialisation function//
 void init_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID], int mode)
 {
-	if (mode == UNIFORM_DENSITY)
-	{
+	if (mode == 0 || mode == 2)
 		uniform_grid(dustGrid);
-	} 
-	else if (mode == NON_UNIFORM_DENSITY)
-	{
+	else if (mode == 1 || mode == 3)
 		non_uniform_grid(dustGrid);
-	}
 }
 
 //function for creating an uniform grid//
@@ -60,6 +76,8 @@ void uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 		for (j = 0; j < SIZE_OF_GRID; j++)
 			for (k = 0; k < SIZE_OF_GRID; k++)
 				dustGrid[i][j][k] = DUST_RHO;
+	
+	cube2sphere(dustGrid);
 }
 
 //Function for creating a non-uniform grid//
@@ -71,12 +89,15 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 		K_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
 		R_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
 		A_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
-		F_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
-	float sum, A;
+		F_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
+		NORM_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
+
+	float sum, A, norm_sum;
 
 	fftw_complex in[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
 		    out[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
 	fftw_plan p;
+
 	//Initialising plan/
 	p = fftw_plan_dft_3d(SIZE_OF_GRID, SIZE_OF_GRID, SIZE_OF_GRID, &in[0][0][0], &out[0][0][0], 
 			     FFTW_BACKWARD, FFTW_PATIENT);
@@ -100,6 +121,9 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 				
 				//Amplitude from power//
 				A_GRID[i][j][k] = pow(R_GRID[i][j][k], DUST_GRID_BETA / 2);
+
+				//Making the normalization Grid for later//
+				NORM_GRID[i][j][k] = DUST_RHO;
 			}
 		}
 	}
@@ -110,18 +134,14 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
  	for (i = 0; i < SIZE_OF_GRID; i++)
 		A_GRID[0][0][i] = 0.0;
 
+
 	//Setting A into a array of randomized values between [0,1]
 	for (i = 0; i < SIZE_OF_GRID; i++)
-	{
 		for (j = 0; j < SIZE_OF_GRID; j++)
-		{
 			for (k = 0; k < SIZE_OF_GRID; k++)
-			{	
 				F_GRID[i][j][k] = randFloat();
-			}
-		}
-	}
 
+	//Combining the grids
 	for (i = 0; i < SIZE_OF_GRID; i++)
 		for (j = 0; j < SIZE_OF_GRID; j++)
 			for (k = 0; k < SIZE_OF_GRID; k++)
@@ -133,8 +153,18 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 
 	fftw_execute(p);
 
-	//Getting a factor A for normalization purposes
-	sum = 0;
+	//Building the dust Grid
+	for (i = 0; i < SIZE_OF_GRID; i++)
+		for (j = 0; j < SIZE_OF_GRID; j++)
+			for (k = 0; k < SIZE_OF_GRID; k++)
+				dustGrid[i][j][k] = fabs(crealf((complex) in[i][j][k])); 
+
+	//Converting the cubes into spheres
+	cube2sphere(dustGrid);
+	cube2sphere(NORM_GRID);
+
+	//Getting a factor A for normalization purposes and also calculating the total mass of normalization grid//
+	sum = 0; norm_sum = 0;
 	for (i = 0; i < SIZE_OF_GRID; i++)
 	{
 		for (j = 0; j < SIZE_OF_GRID; j++)
@@ -142,22 +172,45 @@ void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 			for (k = 0; k < SIZE_OF_GRID; k++)
 			{
 				sum += fabs(crealf((complex) in[i][j][k]));	
+				norm_sum += NORM_GRID[i][j][k];
 			}
 		}
 	}
 
-	A = pow(SIZE_OF_GRID, 3) * DUST_RHO / sum;
+	//Normalization factor
+	A = norm_sum / sum;
 
-	printf("%f - %f \n", A, sum);
-
-	//Building the dust Grid
+	//Normalizing the dust grid
 	for (i = 0; i < SIZE_OF_GRID; i++)
 		for (j = 0; j < SIZE_OF_GRID; j++)
 			for (k = 0; k < SIZE_OF_GRID; k++)
-				dustGrid[i][j][k] = A * fabs(crealf((complex) in[i][j][k])); 
+				dustGrid[i][j][k] = A * dustGrid[i][j][k];
 
+	//fftw cleanup
 	fftw_destroy_plan(p);
 	fftw_cleanup();
+}
+
+//Function that corrects the cube into a spheere//
+void cube2sphere(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
+{
+	int i, j, k;
+	float center[3], sphereC[] = { (float)SIZE_OF_GRID/2 + 0.5, (float)SIZE_OF_GRID/2 + 0.5, (float) SIZE_OF_GRID/2 +0.5 }, radius = (float) SIZE_OF_GRID;
+
+	for (i = 0; i < SIZE_OF_GRID; i++)
+	{
+		for (j = 0; j < SIZE_OF_GRID; j++)
+		{
+			for (k = 0; k < SIZE_OF_GRID; k++)
+			{
+				center[0] = (float) i + 0.5; center[1] = (float) j + 0.5; center[2] = (float) k + 0.5;
+
+				if (distanceBetween(center, sphereC) > radius)
+					dustGrid[i][j][k] = 0.0;
+				
+			}
+		}
+	}
 }
 
 //Function for fourier shift//
@@ -297,7 +350,9 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 
 	while(OutOfSystem == 0)
 	{
+		//Generating tau0, the distance the photon travels before scattering
 		tau0 = -log(randFloat());		
+
 		while (tau0 > 0)
 		{
 			dist = distanceToNextCell(phot);
@@ -305,11 +360,10 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 			
 			if (cellDen < 0)
 			{
+				//testing for bugs
 				if (test == 100000)
-				{
-					
 					printf("%f - %f\n\n",cellDen, dist);
-				}
+
 				OutOfSystem = 1;
 				break;
 			}
@@ -332,6 +386,7 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 			}
 		}
 
+		//Testing for bugs
 		if (test > 100000 && test < 100004)
 		{
 			print_photon(phot);
@@ -359,14 +414,12 @@ void print_photon(struct Photon phot)
 //Initialise photon//
 void init_phot(struct Photon *phot)
 {
-	if (RANDOM_PHOTON_DIR == 0)
+	if (RANDOM_PHOTON_DIR == 0) 
 	{
 		(*phot).pos[0] = PHOTON_START_X; (*phot).pos[1] = PHOTON_START_Y; (*phot).pos[2] = PHOTON_START_Z; 
 	}
 	else
-	{
 		(*phot).pos[0] = PHOTON_START_X; (*phot).pos[1] = randFloat()*32; (*phot).pos[2] = randFloat()*32; 
-	}
 
 	(*phot).dir[0] = 0; (*phot).dir[1] = 0;
 	(*phot).intensity = 1;
@@ -413,12 +466,11 @@ float distanceToNextCell(struct Photon phot)
 	        
 		for (i = 0; i < 3; i++)
 		{
-			if (fabs(rayPos[i] - floor(rayPos[i])) < 0.001) { 
+			if (fabs(rayPos[i] - floor(rayPos[i])) < 0.001)  
 				wallReached = 1; 
-			}
-			if (fabs(floor(rayPos[i]) - rayPos[i]) < 0.001) { 
+
+			if (fabs(floor(rayPos[i]) - rayPos[i]) < 0.001)  
 				wallReached = 1;
-			}
 		}
 	}
 
@@ -435,10 +487,8 @@ int isRayInTheSameCell(struct Photon phot, float rayPos[3])
 {
 	int i, check = 0;
 	for (i = 0; i < 3; i++)
-	{
 		if (floor(phot.pos[i]) != floor(rayPos[i]))
 			check++;
-	}
 
 	return check;
 }
