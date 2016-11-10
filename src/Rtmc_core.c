@@ -4,11 +4,14 @@
 void run_RTMC(int mode)
 {
 	//Declaring necessary variables//
-	float results[SIZE_OF_GRID][SIZE_OF_GRID], dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID], dir[3], norm[3];
+	float results[SIZE_OF_GRID][SIZE_OF_GRID], dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID], dir[3], norm[3],
+	res1[SIZE_OF_GRID][SIZE_OF_GRID], res2[SIZE_OF_GRID][SIZE_OF_GRID], res3[SIZE_OF_GRID][SIZE_OF_GRID], res4[SIZE_OF_GRID][SIZE_OF_GRID];
 	struct Photon phot;
 	int i, j, photonInGrid;
 	FILE *fp;
 	time_t t;
+
+	omp_set_num_threads(4);
 
 	printf("\n-Interstellar photon scattering simulation-\n");
 	printf("-------------------------------------------\n");
@@ -55,9 +58,53 @@ void run_RTMC(int mode)
 	{
 		//Initilising the result grid
 		for (i = 0; i < SIZE_OF_GRID; i++)
+		{
 			for (j = 0; j < SIZE_OF_GRID; j++)
-				results[i][j] = 0;
+			{
+				results[i][j] = 0; res1[i][j] = 0; res2[i][j] = 0; res3[i][j] = 0; res4[i][j] = 0;
+			}
+		}
+
+		#pragma omp parallel sections
+		{
+			#pragma omp section
+			photon_run_viewFile(res1, dustGrid);
+
+			#pragma omp section
+			photon_run_viewFile(res2, dustGrid);
+
+			#pragma omp section
+			photon_run_viewFile(res3, dustGrid);
+
+			#pragma omp section
+			photon_run_viewFile(res1, dustGrid);
+		}	
+
+		for (i = 0; i < SIZE_OF_GRID; i++)
+			for (j = 0; j < SIZE_OF_GRID; j++)
+				results[i][j] += res1[i][j] + res2[i][j] + res3[i][j] + res4[i][j];
+
+/*
+		#pragma omp parallel shared(results) private(dustGrid, res1, i, j) for
+		{
+			photon_run_viewFile(res1, dustGrid);
+
+			#pragma omp critical
+			{	
+				float test = 0;
+
+				for (i = 0; i < SIZE_OF_GRID; i++)
+					for (j = 0; j < SIZE_OF_GRID; j++)
+						results[i][j] += res1[i][j];
+		
+				for (i = 0; i < SIZE_OF_GRID; i++)
+					for (j = 0; j < SIZE_OF_GRID; j++)
+						test += res1[i][j];
 	
+				printf("%f\n", test);
+			}
+		}
+
 		photonInGrid = 0;
 
 		for (i = 0; i < PHOTON_PACKS; i++)
@@ -84,8 +131,7 @@ void run_RTMC(int mode)
 				} 
 			} 
 		}	
-
-		printf("Photons that have hit grid: %d\n", photonInGrid);
+*/
 		
 		//Writing the data to a file
 		fprintf(fp, "%d\n", SIZE_OF_GRID);
@@ -366,6 +412,36 @@ void inverse_fast_fourier_shift(float GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_G
 		for (j = 0; j < SIZE_OF_GRID; j++)
 			for (k = 0; k < SIZE_OF_GRID; k++)
 				GRID[i][j][k] = F_GRID[i][j][k];
+}
+
+//Function for viewFileSituations
+void photon_run_viewFile(float result[SIZE_OF_GRID][SIZE_OF_GRID], float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
+{
+	float dir[3], norm[3];
+	struct Photon phot;
+	int i, j;
+
+	for (i = 0; i < PHOTON_PACKS; i++)
+	{ 
+		if (i % (PHOTON_PACKS / 20) == 0)
+			printf("Core %d Progress: %d %c \n", omp_get_thread_num(),  ((i*100)+100)/PHOTON_PACKS, '%');	
+
+		//Running the route for one photon
+		phot = photon_run(dustGrid);
+
+		//Calculating if the photon hits the grid
+		if (phot.pos[0] > 32)
+		{
+			if (phot.pos[1] > 0 && phot.pos[1] < 32 && phot.pos[2] > 0 && phot.pos[2] < 32)
+			{
+				photDirFloat(phot, dir); 
+				norm[0] = 1; norm[1] = 0; norm[2] = 0;
+
+				if (OBS_DOTP_LIMIT > 1 - dir[0] * norm[0])
+					result[((int) phot.pos[1])][((int) phot.pos[2])] += phot.intensity;
+			} 
+		} 
+	}
 }
 
 //Function of the route of one photon
