@@ -4,11 +4,14 @@
 
 int main(int argc, char *argv[])
 {
-	int mode = strtol(*argv, NULL, 10);
+	if (argc < 2)
+		return -1;
+
+	int mode = strtol(argv[1], NULL, 10);
 
 	if (mode < 0 || mode > 3)
 		return -1;
 	
-	run_RTMC(0);
+	run_RTMC(mode);
 	return 1;
 }

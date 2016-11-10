@@ -4,11 +4,16 @@
 void run_RTMC(int mode)
 {
 	//Declaring necessary variables//
-	float results[SIZE_OF_GRID][SIZE_OF_GRID], dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
+	float results[SIZE_OF_GRID][SIZE_OF_GRID], dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID], dir[3], norm[3];
 	struct Photon phot;
-	int i;
+	int i, j, photonInGrid;
 	FILE *fp;
 	time_t t;
+
+	printf("\n-Interstellar photon scattering simulation-\n");
+	printf("-------------------------------------------\n");
+	printf("MODE: %d - PHOTONS: %d - RHO: %.2f\n", mode, PHOTON_PACKS, DUST_RHO);
+	printf("-------------------------------------------\n");
 
 	//Initialising random seed//
 	srand((unsigned) time(&t));
@@ -24,15 +29,17 @@ void run_RTMC(int mode)
 	else if (mode == 2)
 		fp = fopen("../run/uniform-viewFile", "w+");	
 	else if (mode == 3)
-		fp = fopen(".../run/non-uniform-viewFile", "w+");
-
+		fp = fopen("../run/non-uniform-viewFile", "w+");
+	
+	//Printing the amount of photon packs in the simulation
 	fprintf(fp, "%d\n", PHOTON_PACKS);
 
-	
-	//Running the simulation//
-	
+	//Running the simulation//	
 	if (mode == 0 || mode== 1)
 	{
+		//Printing the amount of photon packs in the simulation
+		fprintf(fp, "%d\n", PHOTON_PACKS);
+
 		for (i = 0; i < PHOTON_PACKS; i++)
 		{ 
 			if (i % (PHOTON_PACKS / 20) == 0)
@@ -46,6 +53,13 @@ void run_RTMC(int mode)
 		}
 	} else if (mode == 2 || mode == 3)
 	{
+		//Initilising the result grid
+		for (i = 0; i < SIZE_OF_GRID; i++)
+			for (j = 0; j < SIZE_OF_GRID; j++)
+				results[i][j] = 0;
+	
+		photonInGrid = 0;
+
 		for (i = 0; i < PHOTON_PACKS; i++)
 		{ 
 			if (i % (PHOTON_PACKS / 20) == 0)
@@ -53,10 +67,35 @@ void run_RTMC(int mode)
 	
 			//Running the route for one photon
 			phot = photon_run(dustGrid);
-		
-			//printing the directional information of the photon to an viewfile
+
+			//Calculating if the photon hits the grid
+			if (phot.pos[0] > 32)
+			{
+				if (phot.pos[1] > 0 && phot.pos[1] < 32 && phot.pos[2] > 0 && phot.pos[2] < 32)
+				{
+					photDirFloat(phot, dir); 
+					norm[0] = 1; norm[1] = 0; norm[2] = 0;
+	
+					if (OBS_DOTP_LIMIT > 1 - dir[0] * norm[0])
+					{
+						results[((int) phot.pos[1])][((int) phot.pos[2])] += phot.intensity;
+						photonInGrid++;
+					}
+				} 
+			} 
 		}	
+
+		printf("Photons that have hit grid: %d\n", photonInGrid);
+		
+		//Writing the data to a file
+		fprintf(fp, "%d\n", SIZE_OF_GRID);
+
+		for (i = 0; i < SIZE_OF_GRID; i++)
+			for (j = 0; j < SIZE_OF_GRID; j++)
+				fprintf(fp, "%f\n", results[i][j]);
 	}	
+	
+	fclose(fp);
 }
 
 //Grid initialisation function//
@@ -66,6 +105,7 @@ void init_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID], int mod
 		uniform_grid(dustGrid);
 	else if (mode == 1 || mode == 3)
 		non_uniform_grid(dustGrid);
+
 }
 
 //function for creating an uniform grid//
@@ -84,13 +124,13 @@ void uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 {
 	int i, j, k;
-	float   I_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
-		J_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
-		K_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
-		R_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
-		A_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
-		F_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
-		NORM_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
+	float I_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
+		  J_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
+		  K_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
+		  R_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
+		  A_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
+		  F_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
+		  NORM_GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID];
 
 	float sum, A, norm_sum;
 
@@ -265,15 +305,9 @@ void fast_fourier_shift(float GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID])
 	}
 	
 	for (i = 0; i < SIZE_OF_GRID; i++)
-	{
 		for (j = 0; j < SIZE_OF_GRID; j++)
-		{
 			for (k = 0; k < SIZE_OF_GRID; k++)
-			{	
 				GRID[i][j][k] = F_GRID[i][j][k];
-			}
-		}
-	}	
 }
 
 //Inverse Fast Fourier shift (not necessary for this code)//
@@ -329,15 +363,9 @@ void inverse_fast_fourier_shift(float GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_G
 
 	//Saving the Grid//
 	for (i = 0; i < SIZE_OF_GRID; i++)
-	{
 		for (j = 0; j < SIZE_OF_GRID; j++)
-		{
 			for (k = 0; k < SIZE_OF_GRID; k++)
-			{	
 				GRID[i][j][k] = F_GRID[i][j][k];
-			}
-		}
-	}
 }
 
 //Function of the route of one photon
@@ -419,7 +447,9 @@ void init_phot(struct Photon *phot)
 		(*phot).pos[0] = PHOTON_START_X; (*phot).pos[1] = PHOTON_START_Y; (*phot).pos[2] = PHOTON_START_Z; 
 	}
 	else
+	{
 		(*phot).pos[0] = PHOTON_START_X; (*phot).pos[1] = randFloat()*32; (*phot).pos[2] = randFloat()*32; 
+	}
 
 	(*phot).dir[0] = 0; (*phot).dir[1] = 0;
 	(*phot).intensity = 1;
@@ -521,4 +551,16 @@ float cellDensity(struct Photon phot, float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID]
 float randFloat()
 {
 	return ((float) (rand() % 3277)) / 3277.0;
+}
+
+float dotProduct(float vec1[3], float vec2[3])
+{
+	return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
+}
+
+void photDirFloat(struct Photon phot, float dir[3])
+{
+	dir[0] = cos(phot.dir[0]) * sin(PI / 2 - phot.dir[1]);
+	dir[1] = sin(phot.dir[0]) * sin(PI / 2 - phot.dir[1]);
+	dir[2] = cos(PI / 2 - phot.dir[1]);
 }

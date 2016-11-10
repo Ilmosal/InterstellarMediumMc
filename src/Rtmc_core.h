@@ -8,19 +8,25 @@
 #include <fftw3.h>
 #include <stdlib.h>
 #include <time.h>
+#include <omp.h>
 
 //Dust grid variables//
 #define SIZE_OF_GRID 32
-#define DUST_RHO 0.2
+#define DUST_RHO 1.0
 #define DUST_KSCA 1.0
 #define DUST_ALBEDO 0.99
 #define DUST_GRID_BETA -2
 
 //Simulation variables//
-#define PHOTON_PACKS 500000 
+#define PHOTON_PACKS 5000000 
 #define THETA_RESULT_COEF 0.02
 #define PHI_RESULT_COEF 0.062832
-#define PHOTON_INTENSITY_RESULT_COEF 0.01
+#define PHOTON_INTENSITY_RESULT_COEF 0.1
+
+//Observer Variables//
+#define OBS_PHI 0.0
+#define OBS_THETA 0.0
+#define OBS_DOTP_LIMIT 0.05
 
 //Photon Variables//
 #define RANDOM_PHOTON_DIR 0
@@ -38,10 +44,10 @@ struct Photon {
 	float intensity;
 };
 
-//Run function 
+//Run function//
 void run_RTMC();
 
-//Grid Functions
+//Grid Functions//
 void init_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID], int mode);
 void uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID]);
 void non_uniform_grid(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID]);
@@ -50,20 +56,22 @@ void fast_fourier_shift(float GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID]);
 void inverse_fast_fourier_shift(float GRID[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID]);
 void ifftn(complex *v, int n, complex *tmp);;
 
-//Photon functions
+//Photon functions//
 void init_phot(struct Photon *phot);
 void scatter_photon(struct Photon *phot);
 int isPhotonOutOfSystem(struct Photon phot);
 float cellDensity(struct Photon phot, float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID]);
 void print_photon(struct Photon phot);
+void photDirFloat(struct Photon phot, float dir[3]);
 
-//Simulation functions
+//Simulation functions//
 struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID]);
 
-//Math functions
+//Math functions//
 float distanceBetween(float vec1[3], float vec2[3]);
 float distanceToNextCell(struct Photon phot);
 int isRayInTheSameCell(struct Photon phot, float rayPos[3]);
 float randFloat();
+float dotProduct(float vec1[3], float vec2[3]);
 
 #endif
