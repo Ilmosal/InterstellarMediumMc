@@ -462,7 +462,7 @@ struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID
 			dist = distanceToNextCell(phot);
 			cellDen = cellDensity(phot, dustGrid);
 			
-			if (cellDen < 0)
+			if (cellDen <= 0)
 			{
 				//testing for bugs
 				if (test == 100000)
