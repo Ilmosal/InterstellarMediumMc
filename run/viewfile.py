@@ -37,8 +37,8 @@ for i in xrange(0, sizeofgrid):
 		intensity1[i][j] = float(f.readline())
 		intensity2[i][j] = float(f2.readline())
 
-intensity1[16][16] = 0
-intensity2[16][16] = 0
+#intensity1[16][16] = 0
+#intensity2[16][16] = 0
 
 plt.figure(1)
 
@@ -46,14 +46,14 @@ plt.subplot(211)
 plt.title("Simulated picture of scattering through the interstellar medium cloud - Homogenous Medium")
 plt.xlabel("X-pixel")
 plt.ylabel("Y-pixel")
-plt.imshow(intensity1, interpolation='nearest')
+plt.imshow(intensity1, vmin=0, vmax=200, interpolation='nearest')
 plt.grid(True)
 
 plt.subplot(212)
 plt.title("Simulated picture of scattering through the interstellar medium cloud - Nonhomogenous Medium")
 plt.xlabel("X-pixel")
 plt.ylabel("Y-pixel")
-plt.imshow(intensity2, interpolation='nearest')
+plt.imshow(intensity2, vmin=0, vmax=200, interpolation='nearest')
 plt.grid(True)
 
 plt.show()

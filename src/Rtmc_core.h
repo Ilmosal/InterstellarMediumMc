@@ -12,7 +12,7 @@
 
 //Dust grid variables//
 #define SIZE_OF_GRID 32
-#define DUST_RHO 0.2
+#define DUST_RHO 0.6
 #define DUST_KSCA 1.0
 #define DUST_ALBEDO 0.99
 #define DUST_GRID_BETA -2
@@ -67,7 +67,8 @@ void photDirFloat(struct Photon phot, float dir[3]);
 //Simulation functions//
 struct Photon photon_run(float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID]);
 void photon_run_viewFile(float result[SIZE_OF_GRID][SIZE_OF_GRID],
-							 float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID]);
+						 float dustGrid[SIZE_OF_GRID][SIZE_OF_GRID][SIZE_OF_GRID],
+						 char *progressionS);
 
 //Math functions//
 float distanceBetween(float vec1[3], float vec2[3]);
